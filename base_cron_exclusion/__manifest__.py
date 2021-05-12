@@ -12,7 +12,7 @@
     "website": "https://github.com/OCA/server-tools",
     "category": "Tools",
     "depends": ["base"],
-    "data": ["views/ir_cron_view.xml"],
+    # "data": ["views/ir_cron_view.xml"],
     "license": "LGPL-3",
     "installable": True,
 }
