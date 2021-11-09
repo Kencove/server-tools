@@ -10,7 +10,7 @@ openpyxl
 openupgradelib
 pysftp
 pyyaml
-raven
+sentry_sdk
 unidecode
 xlrd
 xlwt
