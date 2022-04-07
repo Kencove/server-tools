@@ -25,6 +25,7 @@ try:
     from sentry_sdk.integrations.logging import ignore_logger
     from sentry_sdk.integrations.threading import ThreadingIntegration
     from sentry_sdk.integrations.wsgi import SentryWsgiMiddleware
+    from sentry_sdk.tracing import Span
 except ImportError:  # pragma: no cover
     HAS_SENTRY_SDK = False  # pragma: no cover
     _logger.debug(
@@ -128,6 +129,9 @@ def initialize_sentry(config):
     with sentry_sdk.push_scope() as scope:
         scope.set_extra("debug", False)
         sentry_sdk.capture_message("Starting Odoo Server", "info")
+
+    if odoo.http.request.session:
+        odoo.http.request.session['toTraceparent'] = Span.new_span()
 
     return client
 
