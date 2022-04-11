@@ -25,6 +25,7 @@ try:
     from sentry_sdk.integrations.logging import ignore_logger
     from sentry_sdk.integrations.threading import ThreadingIntegration
     from sentry_sdk.integrations.wsgi import SentryWsgiMiddleware
+    from sentry_sdk.tracing import Span
 except ImportError:  # pragma: no cover
     HAS_SENTRY_SDK = False  # pragma: no cover
     _logger.debug(
@@ -134,3 +135,15 @@ def initialize_sentry(config):
 
 def post_load():
     initialize_sentry(odoo_config)
+
+
+# need to start transaction manually
+
+# from sentry_sdk import start_transaction
+
+# while True:
+#   item = get_from_queue()
+
+#   with start_transaction(op="task", name=item.get_transaction_name()):
+#       # process_item may create more spans internally (see next examples)
+#       process_item(item)

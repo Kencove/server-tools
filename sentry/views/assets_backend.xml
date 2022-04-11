@@ -1,0 +1,33 @@
+<odoo>
+    <data noupdate="1">
+        <template id="assets_backend" name="sentry backend assets" inherit_id="web.assets_backend">
+            <xpath expr="." position="inside">
+                <script
+                    src="https://browser.sentry-cdn.com/6.16.1/bundle.min.js"
+                    integrity="sha384-WkFzsrcXKeJ3KlWNXojDiim8rplIj1RPsCbuv7dsLECoXY8C6Cx158CMgl+O+QKW"
+                    crossorigin="anonymous"
+                ></script>
+                <script
+                    src="https://browser.sentry-cdn.com/6.16.1/bundle.tracing.min.js"
+                    integrity="sha384-hySah00SvKME+98UjlzyfP852AXjPPTh2vgJu26gFcwTlZ02/zm82SINaKTKwIX2"
+                    crossorigin="anonymous"
+                ></script>
+                <script>
+                Sentry.init({
+                    dsn: "https://b0453bf98c6948968c6783869fd77e7c@sentry.review.kencove.com/14",
+                    release: "<t t-esc="request.env['ir.config_parameter'].sudo().get_param('sentry.version', '')"/>",
+                    integrations: [
+                        new Sentry.Integrations.BrowserTracing({
+                            tracingOrigins: ["<t t-esc="str(request.env['ir.config_parameter'].sudo().get_param('web.base.url', '')).replace('https://', '').replace('http://', '')"/>"],
+                        })
+                    ],
+                    tracesSampleRate: <t t-esc="request.env['ir.config_parameter'].sudo().get_param('sentry.tracesSampleRate', '0.2')"/>,
+                    sendClientReports: false,
+                });
+                </script>
+
+            </xpath>
+        </template>
+
+    </data>
+</odoo>
