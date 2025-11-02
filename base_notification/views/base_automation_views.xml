@@ -1,0 +1,38 @@
+<odoo>
+
+    <record id="view_base_automation_form_inherit" model="ir.ui.view">
+        <field name="name">ir.actions.server.form.notify</field>
+        <field name="model">ir.actions.server</field>
+        <field name="inherit_id" ref="mail.view_server_action_form_template" />
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='mail_post_method']" position="after">
+                <field
+                    name="notify_method"
+                    attrs="{
+                        'invisible': [('state', '!=', 'notify')],
+                        'required': [('state', '=', 'notify')]
+                    }"
+                />
+                <field
+                    name="notify_partner_ids"
+                    widget="many2many_tags"
+                    attrs="{
+                        'invisible': [('template_id', '!=', False)],
+                        'required': [('state', '=', 'notify'), ('template_id', '=', False)]
+                    }"
+                />
+            </xpath>
+        </field>
+    </record>
+
+    <!-- <record id="view_base_automation_form_inherit" model="ir.ui.view">
+        <field name="name">Notifications Automation Inherit</field>
+        <field name="model">base.automation</field>
+        <field name="inherit_id" ref="base_automation.view_base_automation_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='active']" position="after">
+                <field name="notify_mode"/>
+            </xpath>
+        </field>
+    </record> -->
+</odoo>
