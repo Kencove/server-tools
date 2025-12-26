@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo noupdate="1">
+    <!-- ===============================================
+         Archive Comparison Configuration
+         =============================================== -->
+
+    <!-- Default comparison strategy (simple/semantic/custom_sql) -->
+    <record id="param_comparison_strategy" model="ir.config.parameter">
+      <field name="key">archive.comparison_strategy</field>
+      <field name="value">simple</field>
+    </record>
+
+    <!-- AI provider for semantic comparison -->
+    <record id="param_ai_provider" model="ir.config.parameter">
+      <field name="key">archive.ai_provider</field>
+      <field name="value">disabled</field>
+      <!-- Options: disabled, openai, ollama -->
+    </record>
+
+    <!-- Maximum cost per comparison (USD) -->
+    <record id="param_ai_cost_max_per_record" model="ir.config.parameter">
+      <field name="key">archive.ai_cost_max_per_record</field>
+      <field name="value">0.01</field>
+    </record>
+
+    <!-- OpenAI API Key (leave empty if disabled) -->
+    <record id="param_openai_api_key" model="ir.config.parameter">
+      <field name="key">archive.openai_api_key</field>
+      <field name="value" />
+    </record>
+
+    <!-- OpenAI Model to use for comparisons -->
+    <record id="param_openai_model" model="ir.config.parameter">
+      <field name="key">archive.openai_model</field>
+      <field name="value">gpt-3.5-turbo</field>
+    </record>
+
+    <!-- Ollama Endpoint (local LLM) -->
+    <record id="param_ollama_endpoint" model="ir.config.parameter">
+      <field name="key">archive.ollama_endpoint</field>
+      <field name="value">http://localhost:11434</field>
+    </record>
+
+    <!-- Ollama Model name -->
+    <record id="param_ollama_model" model="ir.config.parameter">
+      <field name="key">archive.ollama_model</field>
+      <field name="value">llama2</field>
+    </record>
+
+    <!-- Similarity threshold for deduplication (0-1) -->
+    <record id="param_ai_similarity_threshold" model="ir.config.parameter">
+      <field name="key">archive.ai_similarity_threshold</field>
+      <field name="value">0.85</field>
+    </record>
+
+    <!-- Enable cost tracking for archived comparisons -->
+    <record id="param_track_comparison_costs" model="ir.config.parameter">
+      <field name="key">archive.track_comparison_costs</field>
+      <field name="value">True</field>
+    </record>
+
+    <!-- Log level for comparisons (debug/info/warning) -->
+    <record id="param_comparison_log_level" model="ir.config.parameter">
+      <field name="key">archive.comparison_log_level</field>
+      <field name="value">info</field>
+    </record>
+
+    <!-- ===============================================
+         Server Actions for Comparison Workflows
+         =============================================== -->
+
+    <!-- Template: Validate Restored Messages -->
+    <record id="server_action_validate_restoration" model="ir.actions.server">
+      <field name="name">Archive: Validate Restoration</field>
+      <field name="model_id" ref="base_archive_clean.model_archive_job" />
+      <field name="state">code</field>
+      <field name="code">
+# Validate that restored records match originals using simple strategy
+comparisons = env['archive.comparison'].search([
+    ('archive_job_id', '=', record.id),
+    ('restored_record_id', '!=', False),
+    ('strategy_used', '=', 'simple'),
+])
+
+success_count = 0
+warning_count = 0
+
+for comparison in comparisons:
+    if comparison.comparison_result.get('identical'):
+        success_count += 1
+    else:
+        warning_count += 1
+        differences = comparison.comparison_result.get('differences', [])
+        _logger.warning(
+            "Restoration check: Record %s has differences: %s",
+            comparison.original_record_id,
+            differences[:3]  # Show first 3 differences
+        )
+
+message = f"Validation complete: {success_count} identical, {warning_count} with differences"
+_logger.info(message)
+      </field>
+    </record>
+
+    <!-- Template: Detect Message Duplicates (Semantic) -->
+    <record id="server_action_detect_duplicates" model="ir.actions.server">
+      <field name="name">Archive: Detect Semantic Duplicates</field>
+      <field name="model_id" ref="base_archive_clean.model_archive_job" />
+      <field name="state">code</field>
+      <field name="code">
+# Find messages with semantic similarity > threshold
+threshold = float(
+    env['ir.config.parameter'].get_param(
+        'archive.ai_similarity_threshold', '0.85'
+    )
+)
+
+duplicates = env['archive.comparison'].search([
+    ('strategy_used', '=', 'semantic'),
+    ('similarity_score', '>', threshold),
+])
+
+_logger.info(
+    f"Found {len(duplicates)} potential duplicates (similarity > {threshold})"
+)
+
+# Return count to user
+message = f"Found {len(duplicates)} messages with >85% semantic similarity"
+_logger.info(message)
+      </field>
+    </record>
+
+    <!-- Template: Cost Report -->
+    <record id="server_action_cost_report" model="ir.actions.server">
+      <field name="name">Archive: Cost Report</field>
+      <field name="model_id" ref="base_archive_clean.model_archive_comparison" />
+      <field name="state">code</field>
+      <field name="code">
+# Generate cost summary for comparisons
+total_cost = sum(env['archive.comparison'].search(
+    [('cost_usd', '&gt;', 0)]
+).mapped('cost_usd'))
+
+by_strategy = {}
+for comp in env['archive.comparison'].search([]):
+    strategy = comp.strategy_used
+    by_strategy[strategy] = by_strategy.get(strategy, 0) + comp.cost_usd
+
+_logger.info(f"Total comparison costs: ${total_cost:.2f}")
+for strategy, cost in sorted(by_strategy.items()):
+    _logger.info(f"  {strategy}: ${cost:.2f}")
+      </field>
+    </record>
+
+    <!-- ===============================================
+         Default Comparison Strategy Records
+         =============================================== -->
+
+    <!-- Simple strategy is built-in (no external record needed) -->
+    <!-- Semantic strategy loaded from archive_comparison model -->
+    <!-- Custom SQL strategy loaded from archive_comparison model -->
+
+</odoo>
