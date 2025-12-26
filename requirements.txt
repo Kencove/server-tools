@@ -4,6 +4,8 @@ astor
 cryptography
 dataclasses
 dnspython
+google-auth
+google-cloud-bigquery
 josepy
 mako
 odoo_test_helper
